@@ -95,40 +95,7 @@ public class UploadRestController {
         // пробую прочитать файл
 
     }
-    @GetMapping("/readTest")
-    public String readFile() {
-        InputStream is = gateway.getFile("upload/");
-        StringBuilder result = new StringBuilder();
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(is))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                // Добавление строк к результату
-                result.append(line).append("\n");
-            }
-        } catch (IOException e) {
-            // Обработка возможных исключений
-            e.printStackTrace();
-        }
-        try {
-            is.close();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
 
-        // пробую прочитать файл
-        try {
-            InputStream inputStream = sftpSessionFactory.getSession().readRaw("/devdt/test/F2005536_clb_05.prm");
-            byte[] buffer = new byte[inputStream.available()];
-            String s = new String(String.valueOf(inputStream.read(buffer)));
-            return s;
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-
-
-        // Возврат результата чтения файла
-//        return result.toString();
-    }
 
     @GetMapping("/test")
     public String test() {

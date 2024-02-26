@@ -10,6 +10,7 @@ import org.springframework.integration.annotation.ServiceActivator;
 
 import org.springframework.integration.file.remote.session.CachingSessionFactory;
 import org.springframework.integration.file.remote.session.SessionFactory;
+import org.springframework.integration.sftp.filters.SftpSimplePatternFileListFilter;
 import org.springframework.integration.sftp.gateway.SftpOutboundGateway;
 import org.springframework.integration.sftp.outbound.SftpMessageHandler;
 import org.springframework.integration.sftp.session.DefaultSftpSessionFactory;
@@ -49,15 +50,14 @@ public class SftpConfiguration {
         messageHandler.setFileNameGenerator(message -> String.format("mytextfile_%s.txt", LocalDateTime.now()));
         return messageHandler;
     }
-
+//Получения списка public MessageHandler handler(@Payload String remoteDir) перекинуть параметр
     @Bean
     @ServiceActivator(inputChannel = "sftpChannel")
     public MessageHandler handler() {
-
-
-//        return new SftpOutboundGateway(sftpSessionFactory(), "ls","'/upload/'");
         SftpOutboundGateway sftpOutboundGateway = new SftpOutboundGateway(sftpSessionFactory(), "ls", "'/devdt/test/'");
         sftpOutboundGateway.setOptions("-R"); // This option forces the ls command to include the trailing slash for directories
+        sftpOutboundGateway.setFilter(new SftpSimplePatternFileListFilter("*.prm")); // Установка фильтра
+
         return sftpOutboundGateway;
     }
 
