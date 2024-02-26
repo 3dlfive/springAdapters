@@ -1,22 +1,35 @@
 package com.example.sftp.upload;
-
+import org.apache.sshd.sftp.client.SftpClient;
+import org.apache.sshd.sftp.client.SftpClient.DirEntry;
 
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.io.FileUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.integration.file.remote.FileInfo;
+import org.springframework.integration.file.remote.session.SessionFactory;
+import org.springframework.integration.sftp.session.DefaultSftpSessionFactory;
 import org.springframework.integration.sftp.session.SftpFileInfo;
+import org.springframework.integration.sftp.session.SftpSession;
+import org.springframework.integration.support.MessageBuilder;
+import org.springframework.messaging.Message;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequiredArgsConstructor
 public class UploadRestController {
     private final UploadMessagingGateway gateway;
+    @Autowired
+    private final SessionFactory<DirEntry> sftpSessionFactory;
+
 
     @GetMapping("/api/upload/{content}")
     public String uploadFile(@PathVariable String content, @RequestParam("extra") String extra) throws IOException {
@@ -33,21 +46,96 @@ public class UploadRestController {
         return resultcontent;
     }
     @GetMapping("/listFiles")
-    public String listFiles(@RequestParam String remoteDir) {
-        List<SftpFileInfo> fileList = gateway.listFiles(remoteDir);
-        StringBuilder result = new StringBuilder("Hello... List of files:\n");
+    public String listFiles() {
+        List<SftpFileInfo> fileList = gateway.listFiles("remoteDir");
+        StringBuilder result = new StringBuilder("Hello... List of files:");
 
         for (SftpFileInfo fileInfo : fileList) {
-            result.append(fileInfo.getFilename()).append("\n");
+
+            result.append("<br>").append("<b>").append(fileInfo.getRemoteDirectory())
+                    .append(fileInfo.getFilename()).append("</b>       ")
+                    .append("isDirecoty "+fileInfo.isDirectory()+ "     ")
+                    .append(fileInfo.getFileInfo().getAttributes().getModifyTime()
+                    );
         }
+// Чтение байтов работает
+//        InputStream inputStream = null;
+//        try {
+//            byte[] buffer = new byte[2048]; // Создаем буфер для чтения байтов
+//            int bytesRead;
+//            inputStream = sftpSessionFactory.getSession().readRaw("/devdt/test/F2005536_clb_05.prm");
+//            long skipped = inputStream.skip(2040);
+//            if (skipped != 2040) {
+//                System.out.println("Не удалось пропустить нужное количество байтов");
+//               return "Fail to read";
+//            }
+//            bytesRead = inputStream.read(buffer, 0, 8);
+//            if (bytesRead != 8) {
+//                System.out.println("Не удалось прочитать нужное количество байтов");
+//                return "Не удалось прочитать нужное количество байтов";
+//            }
+//            // Конвертируем прочитанные байты в строку и выводим на экран
+//            String bytesAsString = new String(buffer, 0, bytesRead);
+//            System.out.println("Байты с 2040 по 2047: " + bytesAsString);
+//        } catch (IOException e) {
+//            throw new RuntimeException(e);
+//        }
+
+
+//        //Создание директории
+//        try {
+//            sftpSessionFactory.getSession().mkdir("/devdt/test/mktest/");
+//            System.out.println("Good test dir created.");
+//            result.append("<br> Logs: Dir was created");
+//        } catch (IOException e) {
+//            throw new RuntimeException(e);
+//        }
 
         return result.toString();
+        // пробую прочитать файл
+
     }
+    @GetMapping("/readTest")
+    public String readFile() {
+        InputStream is = gateway.getFile("upload/");
+        StringBuilder result = new StringBuilder();
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(is))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                // Добавление строк к результату
+                result.append(line).append("\n");
+            }
+        } catch (IOException e) {
+            // Обработка возможных исключений
+            e.printStackTrace();
+        }
+        try {
+            is.close();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        // пробую прочитать файл
+        try {
+            InputStream inputStream = sftpSessionFactory.getSession().readRaw("/devdt/test/F2005536_clb_05.prm");
+            byte[] buffer = new byte[inputStream.available()];
+            String s = new String(String.valueOf(inputStream.read(buffer)));
+            return s;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+
+        // Возврат результата чтения файла
+//        return result.toString();
+    }
+
     @GetMapping("/test")
     public String test() {
 
 
-        return "result.toString()";
+        return "Its works";
     }
+
 
 }
